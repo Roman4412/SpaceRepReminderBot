@@ -16,6 +16,7 @@ import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,7 +46,8 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
 
-    public void createNotification(List<Update> updates) {
+    public List<NotificationTask> createNotification(List<Update> updates) {
+        List<NotificationTask> tasks = new ArrayList<>();
         for (Update update : updates) {
             Matcher matcher = pattern.matcher(update.message().text());
             Long chatId = update.message().chat().id();
@@ -57,11 +59,13 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
                 task.setText(parseTextFromMessage(matcher));
                 logger.info("create task: created " + task);
                 repository.save(task);
+                tasks.add(task);
                 telegramBot.execute(new SendMessage(update.message().chat().id(), "Задача создана"));
             } else {
                 telegramBot.execute(new SendMessage(update.message().chat().id(), "Некорректный формат"));
             }
         }
+        return tasks;
     }
 
     public String parseDateFromMessage(Matcher matcher) {
